@@ -1,49 +1,58 @@
+import os
+import random
 import pandas as pd
-import matplotlib.pyplot as plt
-
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    confusion_matrix,
-    ConfusionMatrixDisplay
-)
-
-from sklearn.model_selection import train_test_split
-
 from model.preprocess import clean_text
-from model.naive_bayes import NaiveBayesSpam
+from model.naive_bayes import NaiveBayesClassifier
 
-df = pd.read_csv("dataset/spam.csv", encoding="latin1")
+def load_data(filepath: str) -> pd.DataFrame:
+    df = pd.read_csv(filepath, encoding="latin-1")
+    if "v1" in df.columns and "v2" in df.columns:
+        df = df.rename(columns={"v1": "label", "v2": "text"})
+    df = df[["label", "text"]].dropna()
+    return df
 
-df = df[["label","text"]]
+def train_test_split_custom(records, test_ratio=0.2, seed=42):
+    random.seed(seed)
+    shuffled = records.copy()
+    random.shuffle(shuffled)
+    split_idx = int(len(shuffled) * (1 - test_ratio))
+    return shuffled[:split_idx], shuffled[split_idx:]
 
-df["tokens"] = df["text"].apply(clean_text)
+def main():
+    dataset_path = os.path.join("dataset", "spam.csv")
+    df = load_data(dataset_path)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    df["tokens"],
-    df["label"],
-    test_size=0.2,
-    random_state=42
-)
+    records = list(zip(df["text"].tolist(), df["label"].tolist()))
+    train_data, test_data = train_test_split_custom(records, test_ratio=0.2)
 
-model = NaiveBayesSpam()
-model.fit(X_train.tolist(), y_train.tolist())
+    # Train on 80% split
+    x_train_tokens = [clean_text(text) for text, _ in train_data]
+    y_train = [label for _, label in train_data]
 
-predictions = model.predict_batch(X_test.tolist())
+    model = NaiveBayesClassifier(alpha=1.0)
+    model.fit(x_train_tokens, y_train)
 
-print("Accuracy :", accuracy_score(y_test, predictions))
-print("Precision:", precision_score(y_test,predictions,pos_label="spam"))
-print("Recall   :", recall_score(y_test,predictions,pos_label="spam"))
-print("F1 Score :", f1_score(y_test,predictions,pos_label="spam"))
+    # Evaluate on remaining 20%
+    x_test_tokens = [clean_text(text) for text, _ in test_data]
+    y_test = [label for _, label in test_data]
+    y_pred = model.predict(x_test_tokens)
 
-cm = confusion_matrix(y_test,predictions,labels=["ham","spam"])
+    # Calculate metrics treating 'spam' as the positive class
+    tp = sum(1 for yt, yp in zip(y_test, y_pred) if yt == "spam" and yp == "spam")
+    fp = sum(1 for yt, yp in zip(y_test, y_pred) if yt != "spam" and yp == "spam")
+    fn = sum(1 for yt, yp in zip(y_test, y_pred) if yt == "spam" and yp != "spam")
+    tn = sum(1 for yt, yp in zip(y_test, y_pred) if yt != "spam" and yp != "spam")
 
-disp = ConfusionMatrixDisplay(
-    confusion_matrix=cm,
-    display_labels=["ham","spam"]
-)
+    total = tp + fp + fn + tn
+    accuracy = (tp + tn) / total if total else 0
+    precision = tp / (tp + fp) if (tp + fp) else 0
+    recall = tp / (tp + fn) if (tp + fn) else 0
+    f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) else 0
 
-disp.plot(cmap="Blues")
-plt.show()
+    print(f"Accuracy : {accuracy:.16f}")
+    print(f"Precision: {precision:.16f}")
+    print(f"Recall   : {recall:.16f}")
+    print(f"F1 Score : {f1:.16f}")
+
+if __name__ == "__main__":
+    main()

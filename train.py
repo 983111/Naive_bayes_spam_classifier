@@ -1,29 +1,39 @@
+import os
+import pickle
 import pandas as pd
-
-from sklearn.model_selection import train_test_split
-
 from model.preprocess import clean_text
-from model.naive_bayes import NaiveBayesSpam
-from model.utils import create_wordcloud
+from model.naive_bayes import NaiveBayesClassifier
 
-df = pd.read_csv("dataset/spam.csv", encoding="latin1")
+def load_data(filepath: str) -> pd.DataFrame:
+    # Read CSV supporting latin-1 encoding common with SMS spam datasets
+    df = pd.read_csv(filepath, encoding="latin-1")
+    
+    # Handle standard SMS collection format (v1=label, v2=text) or pre-labeled formats
+    if "v1" in df.columns and "v2" in df.columns:
+        df = df.rename(columns={"v1": "label", "v2": "text"})
+    
+    df = df[["label", "text"]].dropna()
+    return df
 
-df = df.rename(columns={"v1": "label", "v2": "text"})[["label", "text"]]
+def main():
+    dataset_path = os.path.join("dataset", "spam.csv")
+    print(f"Loading data from {dataset_path}...")
+    df = load_data(dataset_path)
 
-df["tokens"] = df["text"].apply(clean_text)
+    print("Cleaning text...")
+    tokenized_texts = [clean_text(t) for t in df["text"]]
+    labels = df["label"].tolist()
 
-X_train, X_test, y_train, y_test = train_test_split(
-    df["tokens"],
-    df["label"],
-    test_size=0.2,
-    random_state=42
-)
+    print("Training Naive Bayes model...")
+    model = NaiveBayesClassifier(alpha=1.0)
+    model.fit(tokenized_texts, labels)
 
-model = NaiveBayesSpam()
+    output_model_path = "spam_classifier.pkl"
+    with open(output_model_path, "wb") as f:
+        pickle.dump(model, f)
 
-model.fit(X_train.tolist(), y_train.tolist())
+    print(f"Model saved to {output_model_path}")
+    print("Training complete.")
 
-print("Training complete.")
-
-create_wordcloud(model.spam_counts, "Spam Vocabulary")
-create_wordcloud(model.ham_counts, "Ham Vocabulary")
+if __name__ == "__main__":
+    main()

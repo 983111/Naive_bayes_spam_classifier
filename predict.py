@@ -1,49 +1,35 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    confusion_matrix,
-    ConfusionMatrixDisplay
-)
-
-from sklearn.model_selection import train_test_split
-
+import os
+import pickle
 from model.preprocess import clean_text
-from model.naive_bayes import NaiveBayesSpam
 
-df = pd.read_csv("dataset/spam.csv", encoding="latin1")
+def main():
+    model_path = "spam_classifier.pkl"
+    if not os.path.exists(model_path):
+        print(f"Error: '{model_path}' not found. Please run 'python train.py' first.")
+        return
 
-df = df[["label","text"]]
+    with open(model_path, "rb") as f:
+        model = pickle.load(f)
 
-df["tokens"] = df["text"].apply(clean_text)
+    print("=== Spam Detector CLI ===")
+    print("Type any text message to test, or type 'exit' to quit.\n")
 
-X_train, X_test, y_train, y_test = train_test_split(
-    df["tokens"],
-    df["label"],
-    test_size=0.2,
-    random_state=42
-)
+    while True:
+        try:
+            user_input = input("Enter message: ").strip()
+            if not user_input:
+                continue
+            if user_input.lower() in ["exit", "quit", "q"]:
+                print("Exiting.")
+                break
 
-model = NaiveBayesSpam()
-model.fit(X_train.tolist(), y_train.tolist())
+            tokens = clean_text(user_input)
+            prediction = model.predict_single(tokens)
+            print(f"Prediction -> {prediction.upper()}\n")
 
-predictions = model.predict_batch(X_test.tolist())
+        except (KeyboardInterrupt, EOFError):
+            print("\nExiting.")
+            break
 
-print("Accuracy :", accuracy_score(y_test, predictions))
-print("Precision:", precision_score(y_test,predictions,pos_label="spam"))
-print("Recall   :", recall_score(y_test,predictions,pos_label="spam"))
-print("F1 Score :", f1_score(y_test,predictions,pos_label="spam"))
-
-cm = confusion_matrix(y_test,predictions,labels=["ham","spam"])
-
-disp = ConfusionMatrixDisplay(
-    confusion_matrix=cm,
-    display_labels=["ham","spam"]
-)
-
-disp.plot(cmap="Blues")
-plt.show()
+if __name__ == "__main__":
+    main()
