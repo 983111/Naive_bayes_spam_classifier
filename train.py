@@ -8,7 +8,7 @@ from model.utils import create_wordcloud
 
 df = pd.read_csv("dataset/spam.csv", encoding="latin1")
 
-df = df[["label","text"]]
+df = df.rename(columns={"v1": "label", "v2": "text"})[["label", "text"]]
 
 df["tokens"] = df["text"].apply(clean_text)
 
