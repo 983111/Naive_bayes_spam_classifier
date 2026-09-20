@@ -247,10 +247,10 @@ Outputs
 Example
 
 ```text
-Accuracy : 0.985
-Precision: 0.979
-Recall   : 0.962
-F1 Score : 0.970
+Accuracy : 0.9785
+Precision: 0.9467
+Recall   : 0.8987
+F1 Score : 0.9221
 ```
 
 ---
@@ -264,18 +264,17 @@ python predict.py
 Example
 
 ```text
-Enter SMS:
+=== Spam Detector CLI ===
+Type any text message to test, or type 'exit' to quit.
 
-FREE entry into cash prize draw now!
+Enter message: Congratulations! You've won a $1,000 Walmart gift card. Go to http://claim-reward.com now to claim your prize.
+Prediction -> SPAM
 
-Prediction: SPAM
+Enter message: Can you pick up some milk and eggs on your way home from work?
+Prediction -> HAM
 
-Word Contributions
-
-free      Spam:0.00281 Ham:0.00003
-cash      Spam:0.00175 Ham:0.00008
-prize     Spam:0.00154 Ham:0.00002
-draw      Spam:0.00128 Ham:0.00004
+Enter message: Let me know when you're free so we can finalize the schedule for tomorrow evening.
+Prediction -> HAM
 ```
 
 ---
@@ -320,14 +319,14 @@ Where
 
 # Results
 
-Typical performance on the SMS Spam Collection dataset.
+Measured performance on the SMS Spam Collection dataset (actual run):
 
 | Metric | Score |
 |--------|-------|
-| Accuracy | 98–99% |
-| Precision | 97–99% |
-| Recall | 95–98% |
-| F1 Score | 96–98% |
+| Accuracy | 97.85% |
+| Precision | 94.67% |
+| Recall | 89.87% |
+| F1 Score | 92.21% |
 
 ---
 
@@ -386,4 +385,4 @@ This makes the prediction transparent and interpretable.
 
 **Naive Bayes Spam Classification Engine | Python, Probability Theory, NLP**
 
-Implemented a Multinomial Naive Bayes classifier from scratch using Bayes' Theorem, conditional probabilities, Laplace smoothing, and log-likelihood inference to classify SMS messages as spam or ham. Built an end-to-end NLP preprocessing pipeline over 5,500+ SMS messages and achieved approximately **98–99% accuracy** while providing interpretable word-level probability explanations for every prediction.
+Implemented a Multinomial Naive Bayes classifier from scratch using Bayes' Theorem, conditional probabilities, Laplace smoothing, and log-likelihood inference to classify SMS messages as spam or ham. Built an end-to-end NLP preprocessing pipeline over 5,500+ SMS messages and achieved **97.85% accuracy** (94.67% precision, 89.87% recall, 92.21% F1) while providing interpretable word-level probability explanations for every prediction.
