@@ -1,116 +1,58 @@
-from collections import Counter
 import math
+from collections import defaultdict
 
-class NaiveBayesSpam:
+class NaiveBayesClassifier:
+    """Multinomial Naive Bayes classifier with Laplace smoothing."""
+    def __init__(self, alpha: float = 1.0):
+        self.alpha = alpha
+        self.class_priors = {}
+        self.word_counts = {}
+        self.class_totals = {}
+        self.vocab = set()
+        self.classes = []
 
-    def __init__(self):
-        self.spam_counts = Counter()
-        self.ham_counts = Counter()
+    def fit(self, tokenized_texts: list[list[str]], labels: list[str]):
+        self.classes = list(set(labels))
+        total_samples = len(labels)
 
-        self.spam_messages = 0
-        self.ham_messages = 0
+        # Initialize tracking dictionaries
+        for c in self.classes:
+            self.class_priors[c] = 0.0
+            self.word_counts[c] = defaultdict(int)
+            self.class_totals[c] = 0
 
-        self.spam_words = 0
-        self.ham_words = 0
+        # Count frequencies
+        for tokens, label in zip(tokenized_texts, labels):
+            self.class_priors[label] += 1
+            for word in tokens:
+                self.vocab.add(word)
+                self.word_counts[label][word] += 1
+                self.class_totals[label] += 1
 
-        self.vocabulary = set()
+        # Calculate prior probabilities P(c)
+        for c in self.classes:
+            self.class_priors[c] = self.class_priors[c] / total_samples
 
-    # --------------------------
-    # Training
-    # --------------------------
-    def fit(self, texts, labels):
+    def predict_single(self, tokens: list[str]) -> str:
+        vocab_size = len(self.vocab)
+        best_class = None
+        best_log_prob = -float("inf")
 
-        for words, label in zip(texts, labels):
+        for c in self.classes:
+            log_prob = math.log(self.class_priors[c])
+            denominator = self.class_totals[c] + self.alpha * vocab_size
 
-            if label == "spam":
-                self.spam_messages += 1
+            for word in tokens:
+                if word in self.vocab:
+                    count = self.word_counts[c].get(word, 0)
+                    prob = (count + self.alpha) / denominator
+                    log_prob += math.log(prob)
 
-                for word in words:
-                    self.spam_counts[word] += 1
-                    self.spam_words += 1
-                    self.vocabulary.add(word)
+            if log_prob > best_log_prob:
+                best_log_prob = log_prob
+                best_class = c
 
-            else:
-                self.ham_messages += 1
+        return best_class
 
-                for word in words:
-                    self.ham_counts[word] += 1
-                    self.ham_words += 1
-                    self.vocabulary.add(word)
-
-        self.total_messages = self.spam_messages + self.ham_messages
-        self.vocab_size = len(self.vocabulary)
-
-    # --------------------------
-    # Priors
-    # --------------------------
-    def prior_spam(self):
-        return self.spam_messages / self.total_messages
-
-    def prior_ham(self):
-        return self.ham_messages / self.total_messages
-
-    # --------------------------
-    # Likelihoods with Laplace
-    # --------------------------
-    def likelihood_spam(self, word):
-        return (
-            self.spam_counts[word] + 1
-        ) / (
-            self.spam_words + self.vocab_size
-        )
-
-    def likelihood_ham(self, word):
-        return (
-            self.ham_counts[word] + 1
-        ) / (
-            self.ham_words + self.vocab_size
-        )
-
-    # --------------------------
-    # Predict single message
-    # --------------------------
-    def predict(self, words):
-
-        spam_score = math.log(self.prior_spam())
-        ham_score = math.log(self.prior_ham())
-
-        for word in words:
-            spam_score += math.log(self.likelihood_spam(word))
-            ham_score += math.log(self.likelihood_ham(word))
-
-        if spam_score > ham_score:
-            return "spam"
-
-        return "ham"
-
-    # --------------------------
-    # Batch prediction
-    # --------------------------
-    def predict_batch(self, texts):
-        predictions = []
-
-        for words in texts:
-            predictions.append(self.predict(words))
-
-        return predictions
-
-    # --------------------------
-    # Explain prediction
-    # --------------------------
-    def explain(self, words):
-
-        explanation = []
-
-        for word in words:
-            explanation.append({
-                "word": word,
-                "spam_prob": self.likelihood_spam(word),
-                "ham_prob": self.likelihood_ham(word)
-            })
-
-        return sorted(
-            explanation,
-            key=lambda x: x["spam_prob"] / x["ham_prob"],
-            reverse=True
-        )
+    def predict(self, tokenized_texts: list[list[str]]) -> list[str]:
+        return [self.predict_single(tokens) for tokens in tokenized_texts]
