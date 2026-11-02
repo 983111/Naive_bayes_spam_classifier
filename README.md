@@ -381,8 +381,3 @@ This makes the prediction transparent and interpretable.
 
 ---
 
-## Resume Description
-
-**Naive Bayes Spam Classification Engine | Python, Probability Theory, NLP**
-
-Implemented a Multinomial Naive Bayes classifier from scratch using Bayes' Theorem, conditional probabilities, Laplace smoothing, and log-likelihood inference to classify SMS messages as spam or ham. Built an end-to-end NLP preprocessing pipeline over 5,500+ SMS messages and achieved **97.85% accuracy** (94.67% precision, 89.87% recall, 92.21% F1) while providing interpretable word-level probability explanations for every prediction.
